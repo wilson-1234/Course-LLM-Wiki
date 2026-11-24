@@ -1,0 +1,12 @@
+# Obsidian 暫存與快取
+.obsidian/workspace*
+.obsidian/cache*
+
+# 作業系統暫存
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# 暫存腳本
+*.pyc
+__pycache__/

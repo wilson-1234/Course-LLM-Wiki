@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>溫室氣體盤查的誕生與演進密碼 —— 知識圖譜巡航簡報</title>
+  <style>
+    :root {
+      --bg: #070b14;
+      --panel-bg: rgba(13, 20, 36, 0.88);
+      --border: rgba(255, 255, 255, 0.08);
+      --text-main: #f8fafc;
+      --text-sub: #94a3b8;
+
+      /* 核心亮麗色票 */
+      --c-red: #ff4757;
+      --c-red-bg: rgba(255, 71, 87, 0.16);
+      --c-orange: #ff7f11;
+      --c-orange-bg: rgba(255, 127, 17, 0.16);
+      --c-yellow: #ffd32a;
+      --c-yellow-bg: rgba(255, 211, 42, 0.16);
+      --c-green: #2ed573;
+      --c-green-bg: rgba(46, 213, 115, 0.16);
+      --c-cyan: #00d2d3;
+      --c-cyan-bg: rgba(0, 210, 211, 0.16);
+      --c-blue: #1e90ff;
+      --c-blue-bg: rgba(30, 144, 255, 0.16);
+      --c-purple: #a55eea;
+      --c-purple-bg: rgba(165, 94, 234, 0.16);
+      --c-pink: #ff6b81;
+      --c-pink-bg: rgba(255, 107, 129, 0.16);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang TC", "Microsoft JhengHei", sans-serif;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text-main);
+      overflow: hidden;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      user-select: none;
+    }
+
+    /* 頂部進度條 */
+    #progress-bar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 4px;
+      background: linear-gradient(90deg, var(--c-red), var(--c-yellow), var(--c-cyan), var(--c-blue), var(--c-purple));
+      width: 11.11%;
+      transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: 100;
+    }
+
+    /* 主舞台（左右分欄：左內容 HUD，右圖譜畫布） */
+    #stage {
+      flex: 1;
+      position: relative;
+      display: flex;
+      width: 100%;
+      height: calc(100vh - 65px);
+      overflow: hidden;
+    }
+
+    /* 左側資訊面版 HUD */
+    #panel {
+      width: 45%;
+      height: 100%;
+      padding: 2.5rem 2.5rem 2.5rem 3.5rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      background: linear-gradient(90deg, rgba(7, 11, 20, 0.98) 78%, rgba(7, 11, 20, 0) 100%);
+      z-index: 20;
+      pointer-events: auto;
+      overflow-y: auto;
+    }
+
+    .station-badge {
+      font-size: 0.85rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 0.35rem 0.9rem;
+      border-radius: 999px;
+      width: fit-content;
+      margin-bottom: 0.75rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      border: 1px solid currentColor;
+    }
+
+    .slide-title {
+      font-size: 2.2rem;
+      font-weight: 900;
+      line-height: 1.25;
+      margin-bottom: 0.85rem;
+      letter-spacing: -0.02em;
+    }
+
+    /* 單一靈魂主幹句 */
+    .one-sentence {
+      font-size: 1.18rem;
+      line-height: 1.55;
+      font-weight: 500;
+      color: #f1f5f9;
+      padding-left: 1.1rem;
+      border-left: 4px solid var(--c-cyan);
+      margin-bottom: 1.4rem;
+    }
+
+    /* 繽紛膠囊容器 */
+    .chip-container {
+      display: flex;
+      flex-direction: column;
+      gap: 0.8rem;
+    }
+
+    .chip-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.55rem;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      font-size: 0.95rem;
+      font-weight: 700;
+      padding: 0.5rem 0.95rem;
+      border-radius: 0.75rem;
+      border: 1px solid transparent;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+      transition: all 0.25s ease;
+    }
+
+    .chip:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+    }
+
+    .chip-lg {
+      font-size: 1.12rem;
+      padding: 0.65rem 1.15rem;
+      border-radius: 0.85rem;
+    }
+
+    .chip-sm {
+      font-size: 0.85rem;
+      padding: 0.35rem 0.7rem;
+      border-radius: 0.5rem;
+    }
+
+    /* 關係符號 */
+    .op {
+      font-size: 1.25rem;
+      font-weight: 900;
+      color: var(--text-sub);
+      padding: 0 0.2rem;
+    }
+
+    /* 色彩樣式 */
+    .c-red    { color: #ff6b81; background: var(--c-red-bg);    border-color: rgba(255, 71, 87, 0.45); }
+    .c-orange { color: #ffa502; background: var(--c-orange-bg); border-color: rgba(255, 127, 17, 0.45); }
+    .c-yellow { color: #ffeaa7; background: var(--c-yellow-bg); border-color: rgba(255, 211, 42, 0.45); }
+    .c-green  { color: #55efc4; background: var(--c-green-bg);  border-color: rgba(46, 213, 115, 0.45); }
+    .c-cyan   { color: #81ecec; background: var(--c-cyan-bg);   border-color: rgba(0, 210, 211, 0.45); }
+    .c-blue   { color: #74b9ff; background: var(--c-blue-bg);   border-color: rgba(30, 144, 255, 0.45); }
+    .c-purple { color: #d29bfe; background: var(--c-purple-bg); border-color: rgba(165, 94, 234, 0.45); }
+    .c-pink   { color: #ff9ff3; background: var(--c-pink-bg);   border-color: rgba(255, 107, 129, 0.45); }
+    .c-gray   { color: #cbd5e1; background: rgba(100, 116, 139, 0.18); border-color: rgba(148, 163, 184, 0.35); }
+    .c-ban {
+      color: #94a3b8;
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px dashed #ef4444;
+      text-decoration: line-through;
+      text-decoration-color: #ef4444;
+    }
+
+    /* 右側 SVG 圖譜畫布 */
+    #graph-viewport {
+      width: 55%;
+      height: 100%;
+      position: absolute;
+      right: 0;
+      top: 0;
+      z-index: 10;
+    }
+
+    svg#graph-canvas {
+      width: 100%;
+      height: 100%;
+    }
+
+    /* 鏡頭平滑過渡 */
+    #camera {
+      transition: transform 0.65s cubic-bezier(0.16, 1, 0.3, 1);
+      transform-origin: 500px 350px;
+    }
+
+    /* 節點與連線動畫樣式 */
+    .graph-link {
+      stroke: rgba(255, 255, 255, 0.12);
+      stroke-width: 2;
+      transition: all 0.4s ease;
+    }
+
+    .graph-link.active {
+      stroke-width: 3.5;
+      stroke-dasharray: 6 3;
+      animation: dashflow 1.5s linear infinite;
+    }
+
+    @keyframes dashflow {
+      to { stroke-dashoffset: -18; }
+    }
+
+    .graph-node {
+      cursor: pointer;
+      transition: all 0.35s ease;
+    }
+
+    .graph-node circle {
+      transition: all 0.35s ease;
+      filter: drop-shadow(0 0 6px rgba(0, 0, 0, 0.8));
+    }
+
+    .graph-node text {
+      font-size: 13px;
+      font-weight: 700;
+      fill: #ffffff;
+      pointer-events: none;
+      text-anchor: middle;
+      dominant-baseline: central;
+    }
+
+    .graph-node.dimmed {
+      opacity: 0.15;
+    }
+
+    .graph-node.highlight circle {
+      stroke-width: 4px;
+      filter: drop-shadow(0 0 16px currentColor);
+    }
+
+    /* 邊界防護罩輪廓 (Overlay) */
+    .boundary-box {
+      fill: none;
+      stroke-width: 3;
+      stroke-dasharray: 8 6;
+      rx: 24;
+      opacity: 0;
+      transition: opacity 0.5s ease;
+      pointer-events: none;
+    }
+
+    .boundary-box.active {
+      opacity: 0.85;
+      animation: dashflow 3s linear infinite;
+    }
+
+    /* 底部控制器 */
+    #controls {
+      height: 65px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 3.5rem;
+      background: rgba(7, 11, 20, 0.96);
+      border-top: 1px solid var(--border);
+      z-index: 50;
+    }
+
+    .ctrl-btn {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      padding: 0.5rem 1.25rem;
+      border-radius: 0.6rem;
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 0.95rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: all 0.2s ease;
+    }
+
+    .ctrl-btn:hover:not(:disabled) {
+      background: var(--text-main);
+      color: #070b14;
+    }
+
+    .ctrl-btn:disabled {
+      opacity: 0.25;
+      cursor: not-allowed;
+    }
+
+    /* 站點圓點導覽列 */
+    .dots {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.2);
+      cursor: pointer;
+      transition: all 0.25s ease;
+    }
+
+    .dot.active {
+      width: 28px;
+      background: var(--c-cyan);
+    }
+
+    /* 互動小問答卡片 */
+    .quiz-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      margin-top: 0.2rem;
+    }
+
+    .quiz-pill {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 0.85rem;
+      padding: 0.75rem 1rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .quiz-pill:hover {
+      border-color: var(--c-yellow);
+      background: rgba(255, 211, 42, 0.06);
+    }
+
+    .quiz-ans {
+      display: none;
+      margin-top: 0.45rem;
+      padding-top: 0.45rem;
+      border-top: 1px dashed rgba(255, 255, 255, 0.15);
+      color: #55efc4;
+      font-weight: 700;
+      font-size: 0.9rem;
+      line-height: 1.45;
+    }
+
+    @media (max-width: 1024px) {
+      #stage { flex-direction: column; }
+      #panel { width: 100%; height: auto; padding: 1.75rem; }
+      #graph-viewport { width: 100%; position: relative; height: 350px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="progress-bar"></div>
+
+  <div id="stage">
+    <!-- 左側內容 HUD -->
+    <div id="panel">
+      <!-- 內容將由 JS 根據當前 stationId 動態注入 -->
+      <div id="content-slot"></div>
+    </div>
+
+    <!-- 右側 SVG 圖譜畫布 -->
+    <div id="graph-viewport">
+      <svg id="graph-canvas" viewBox="0 0 1000 700">
+        <defs>
+          <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur"/>
+            <feMerge>
+              <feMergeNode in="blur"/>
+              <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+          </filter>
+        </defs>
+
+        <!-- 鏡頭相機群組 (由 transform 縮放與平移) -->
+        <g id="camera">
+
+          <!-- 邊界輪廓線 (Overlay Boundaries) -->
+          <!-- 環境部邊界：涵蓋 範疇一、範疇二 (營運控制權法) -->
+          <rect id="env-boundary" class="boundary-box" x="240" y="80" width="670" height="260" stroke="#2ed573" />
+          <!-- 金管會邊界：涵蓋 全體範疇與重大間接排放 (財務控制權法) -->
+          <rect id="fsc-boundary" class="boundary-box" x="80" y="60" width="850" height="580" stroke="#1e90ff" />
+
+          <!-- 連線層 Links -->
+          <g id="links-layer">
+            <!-- 歷史溯源脈絡連線 -->
+            <line id="link-origin-treaty" class="graph-link" x1="160" y1="120" x2="160" y2="280" stroke="#ff4757" />
+            <line id="link-treaty-ghg" class="graph-link" x1="160" y1="280" x2="380" y2="200" stroke="#1e90ff" />
+            <line id="link-ghg-iso" class="graph-link" x1="380" y1="200" x2="620" y2="200" stroke="#2ed573" />
+
+            <!-- 範疇一 / 類別 1 分支 (紅色系) -->
+            <line id="link-s1-fix" class="graph-link" x1="380" y1="200" x2="280" y2="100" stroke="#ff4757" />
+            <line id="link-s1-mob" class="graph-link" x1="380" y1="200" x2="280" y2="200" stroke="#ff7f11" />
+            <line id="link-s1-fug" class="graph-link" x1="380" y1="200" x2="280" y2="300" stroke="#ff6b81" />
+            <line id="link-s1-excl" class="graph-link" x1="280" y1="200" x2="180" y2="200" stroke="#64748b" stroke-dasharray="4 4" />
+
+            <!-- 範疇二 / 類別 2 分支 (黃色系) -->
+            <line id="link-s2-grid" class="graph-link" x1="620" y1="200" x2="800" y2="140" stroke="#ffd32a" />
+            <line id="link-s2-solar" class="graph-link" x1="800" y1="140" x2="890" y2="210" stroke="#2ed573" />
+
+            <!-- 範疇三 / 類別 3~6 分支 (紫色系) -->
+            <line id="link-hub-s3" class="graph-link" x1="380" y1="200" x2="500" y2="360" stroke="#a55eea" />
+            <line id="link-s3-c3" class="graph-link" x1="500" y1="360" x2="240" y2="490" stroke="#00d2d3" />
+            <line id="link-s3-c4" class="graph-link" x1="500" y1="360" x2="420" y2="530" stroke="#1e90ff" />
+            <line id="link-s3-c5" class="graph-link" x1="500" y1="360" x2="600" y2="530" stroke="#ff6b81" />
+            <line id="link-s3-c6" class="graph-link" x1="500" y1="360" x2="760" y2="490" stroke="#a55eea" />
+
+            <!-- 重大性準則與 2018 跨代改革 -->
+            <line id="link-iso-c4" class="graph-link" x1="620" y1="200" x2="500" y2="360" stroke="#2ed573" />
+            <line id="link-crit-c4" class="graph-link" x1="620" y1="200" x2="420" y2="530" stroke="#ffd32a" />
+          </g>
+
+          <!-- 節點層 Nodes -->
+          <g id="nodes-layer">
+            <!-- 歷史源頭 1: 氣候警鐘 IPCC AR6 (1988~2023) -->
+            <g id="node-origin" class="graph-node" transform="translate(160, 120)">
+              <circle r="46" fill="#4a121a" stroke="#ff4757" stroke-width="3" />
+              <text y="-8">氣候警鐘</text>
+              <text y="12" style="font-size:10px; fill:#ff6b81;">IPCC AR6 / 1.1°C</text>
+            </g>
+
+            <!-- 歷史源頭 2: 國際公約體系 (UNFCCC / 京都 / 巴黎) -->
+            <g id="node-treaty" class="graph-node" transform="translate(160, 280)">
+              <circle r="46" fill="#0d2847" stroke="#1e90ff" stroke-width="3" />
+              <text y="-8">國際公約</text>
+              <text y="12" style="font-size:10px; fill:#74b9ff;">UNFCCC / 京都議定</text>
+            </g>
+
+            <!-- 核心樞紐 1: 範疇體系 (GHG Protocol 2001 / ISO 2006) -->
+            <g id="node-ghg" class="graph-node" transform="translate(380, 200)">
+              <circle r="46" fill="#0c2461" stroke="#1e90ff" stroke-width="3.5" />
+              <text y="-7">範疇體系</text>
+              <text y="13" style="font-size:10px; fill:#74b9ff;">GHG Protocol (3範疇)</text>
+            </g>
+
+            <!-- 核心樞紐 2: 類別體系 (ISO 14064-1:2018) -->
+            <g id="node-iso" class="graph-node" transform="translate(620, 200)">
+              <circle r="46" fill="#004d40" stroke="#2ed573" stroke-width="3.5" />
+              <text y="-7">類別體系</text>
+              <text y="13" style="font-size:10px; fill:#55efc4;">ISO 14064 (6類別)</text>
+            </g>
+
+            <!-- 範疇一 / 類別 1 簇 (紅色系) -->
+            <g id="node-s1-fix" class="graph-node" transform="translate(280, 100)">
+              <circle r="32" fill="#4a1525" stroke="#ff4757" stroke-width="2.5" />
+              <text y="-4">固定燃燒</text>
+              <text y="12" style="font-size:9px; fill:#ff6b81;">發電機/鍋爐</text>
+            </g>
+
+            <g id="node-s1-mob" class="graph-node" transform="translate(280, 200)">
+              <circle r="32" fill="#4a1525" stroke="#ff7f11" stroke-width="2.5" />
+              <text y="-4">移動燃燒</text>
+              <text y="12" style="font-size:9px; fill:#ffa502;">自有公務車</text>
+            </g>
+
+            <g id="node-s1-fug" class="graph-node" transform="translate(280, 300)">
+              <circle r="32" fill="#4a1525" stroke="#ff6b81" stroke-width="2.5" />
+              <text y="-4">逸散排放</text>
+              <text y="12" style="font-size:9px; fill:#ff9ff3;">冷媒/化糞池</text>
+            </g>
+
+            <g id="node-s1-excl" class="graph-node" transform="translate(180, 200)">
+              <circle r="26" fill="#1e293b" stroke="#ef4444" stroke-dasharray="3 3" stroke-width="2" />
+              <text y="-4" style="fill:#ef4444; font-size:11px;">租賃/私家車</text>
+              <text y="9" style="font-size:8px; fill:#94a3b8;">🚫 排除</text>
+            </g>
+
+            <!-- 範疇二 / 類別 2 簇 (黃色系) -->
+            <g id="node-s2-grid" class="graph-node" transform="translate(800, 140)">
+              <circle r="42" fill="#4a3b00" stroke="#ffd32a" stroke-width="3" />
+              <text y="-5">外購電力</text>
+              <text y="13" style="font-size:10px; fill:#ffeaa7;">佔比 90%+</text>
+            </g>
+
+            <g id="node-s2-solar" class="graph-node" transform="translate(890, 210)">
+              <circle r="26" fill="#004d40" stroke="#2ed573" stroke-width="2" />
+              <text y="-3" style="fill:#55efc4; font-size:10px;">光電自用</text>
+              <text y="9" style="font-size:8px; fill:#a7f3d0;">係數＝0</text>
+            </g>
+
+            <!-- 範疇三 / 類別 3~6 簇 (紫色系) -->
+            <g id="node-s3-hub" class="graph-node" transform="translate(500, 360)">
+              <circle r="40" fill="#3b154a" stroke="#a55eea" stroke-width="3" />
+              <text y="-6">範疇三</text>
+              <text y="12" style="font-size:10px; fill:#d29bfe;">15項價值鏈 (舊版黑洞)</text>
+            </g>
+
+            <g id="node-c3" class="graph-node" transform="translate(240, 490)">
+              <circle r="36" fill="#003e40" stroke="#00d2d3" stroke-width="2.5" />
+              <text y="-4">類別 3【運】</text>
+              <text y="12" style="font-size:9px; fill:#81ecec;">差旅/通勤</text>
+            </g>
+
+            <g id="node-c4" class="graph-node" transform="translate(420, 530)">
+              <circle r="36" fill="#0c2461" stroke="#1e90ff" stroke-width="2.5" />
+              <text y="-4">類別 4【買】</text>
+              <text y="12" style="font-size:9px; fill:#74b9ff;">採購/租賃</text>
+            </g>
+
+            <g id="node-c5" class="graph-node" transform="translate(600, 530)">
+              <circle r="36" fill="#4a1532" stroke="#ff6b81" stroke-width="2.5" />
+              <text y="-4">類別 5【賣】</text>
+              <text y="12" style="font-size:9px; fill:#ff9ff3;">售後/廢棄</text>
+            </g>
+
+            <g id="node-c6" class="graph-node" transform="translate(760, 490)">
+              <circle r="36" fill="#2d154a" stroke="#a55eea" stroke-width="2.5" />
+              <text y="-4">類別 6【特】</text>
+              <text y="12" style="font-size:9px; fill:#d29bfe;">其他重大</text>
+            </g>
+
+          </g>
+        </g>
+      </svg>
+    </div>
+  </div>
+
+  <!-- 底部控制器 -->
+  <footer id="controls">
+    <button class="ctrl-btn" id="prev-btn" onclick="prevSlide()" disabled>← 上一站</button>
+    <div class="dots" id="dots-container"></div>
+    <div style="display: flex; gap: 0.75rem;">
+      <button class="ctrl-btn" onclick="toggleFullscreen()">⛶ 全螢幕</button>
+      <button class="ctrl-btn" id="next-btn" onclick="nextSlide()">下一站 →</button>
+    </div>
+  </footer>
+
+  <script>
+    // 9 大站點完整資料定義
+    const STATIONS = [
+      {
+        id: 0,
+        badge: "第 1 站 / 9 站 · 全域座標",
+        badgeClass: "c-cyan",
+        title: "碳盤查的誕生與演進密碼",
+        sentence: "溫室氣體盤查不是官僚發明的填表遊戲，而是人類面對氣候臨界點，將無形的碳排放具象為全球通用會計科目的生存自救歷程。",
+        chips: `
+          <div class="chip-row">
+            <span class="chip chip-lg c-red">🌍 地球科學警鐘 ➔ IPCC AR6 升溫 1.1°C</span>
+          </div>
+          <div class="chip-row">
+            <span class="chip chip-lg c-blue">📜 國際條約博弈 ➔ UNFCCC ➔ 京都 ➔ 巴黎協定</span>
+          </div>
+          <div class="chip-row">
+            <span class="chip chip-lg c-green">📐 企業管理抽屜 ➔ GHG Protocol (3範疇) ➔ ISO 14064-1 (6類別)</span>
+          </div>
+          <div class="chip-row" style="margin-top:0.4rem;">
+            <span class="chip chip-sm c-yellow">💡 核心演化邏輯：從「只管自己煙囪」演變為「整條供應鏈全面清算」</span>
+          </div>
+        `,
+        camera: { x: 0, y: 0, scale: 1 },
+        activeNodes: ["node-origin", "node-treaty", "node-ghg", "node-iso", "node-s3-hub"],
+        activeLinks: ["link-origin-treaty", "link-treaty-ghg", "link-ghg-iso", "link-hub-s3"],
+        boundaries: []
+      },
+      {
+        id: 1,
+        badge: "第 2 站 / 9 站 · 氣候鐵證",
+        badgeClass: "c-red",
+        title: "第一幕：地球發燒的科學鐵證",
+        sentence: "大氣 CO₂ 濃度破 410 ppm，百年升溫達 1.1°C，海平面每年加速上升 0.37 公分，剩餘碳預算敲響人類倒數計時。",
+        chips: `
+          <div class="chip-row">
+            <span class="chip c-red">🌡️ 觀測升溫 1.1°C</span>
+            <span class="op">➔</span>
+            <span class="chip c-orange">陸地增溫 1.59°C（超越海洋 0.88°C）</span>
+          </div>
+          <div class="chip-row">
+            <span class="chip c-yellow">📈 CO₂ 濃度突破 410 ppm</span>
+            <span class="chip c-pink">🌊 海平面上升速率翻倍達 0.37 cm/yr</span>
+          </div>
+          <div class="chip-row">
+            <span class="chip chip-sm c-red">🪸 生態浩劫：若升溫達 1.5°C ➔ 70%~90% 珊瑚礁白化死亡</span>
+          </div>
+          <div class="chip-row">
+            <span class="chip chip-sm c-purple">⏳ 500 Gt 剩餘碳預算：依目前年排 40 Gt，只剩不足 12 年窗口</span>
+          </div>
+        `,
+        camera: { x: 330, y: 190, scale: 1.8 },
+        activeNodes: ["node-origin"],
+        activeLinks: ["link-origin-treaty"],
+        boundaries: []
+      },
+      {
+        id: 2,
+        badge: "第 3 站 / 9 站 · 條約誕生",
+        badgeClass: "c-blue",
+        title: "第二幕：國際公約與碳度量衡誕生",
+        sentence: "沒有度量衡就沒有定價與履約，從 1992 年氣候公約到 2001 年 GHG Protocol，碳排正式成為世界商業會計科目。",
+        chips: `
+          <div class="chip-row">
+            <span class="chip chip-sm c-blue">1988 IPCC 成立</span>
+            <span class="op">➔</span>
+            <span class="chip chip-sm c-cyan">1992 里約高峰會 UNFCCC</span>
+            <span class="op">➔</span>
+            <span class="chip chip-sm c-yellow">1997 京都議定書 (六大溫室氣體)</span>
+          </div>
+          <div class="chip-row">
+            <span class="chip chip-lg c-blue">📘 2001 GHG Protocol 誕生</span>
+            <span class="op">➔</span>
+            <span class="chip c-green">創立「範疇一、二、三」劃分體系</span>
+          </div>
+          <div class="chip-row">
+            <span class="chip chip-sm c-orange">📜 2006 ISO 14064-1 發布：將 Scope 1/2/3 納入第一代國際查驗標準</span>
+          </div>
+          <div class="chip-row">
+            <span class="chip chip-sm c-pink">🎯 2015 巴黎協定：全球啟動「本世紀末抑低溫升在 1.5°C 內」法定共識</span>
+          </div>
+        `,
+        camera: { x: 280, y: 50, scale: 1.7 },
+        activeNodes: ["node-origin", "node-treaty", "node-ghg"],
+        activeLinks: ["link-origin-treaty", "link-treaty-ghg"],
+        boundaries: []
+      },
+      {
+        id: 3,
+        badge: "第 4 站 / 9 站 · 制度漏洞",
+        badgeClass: "c-purple",
+        title: "第三幕：舊版漏洞與企業「鴕鳥心態」",
+        sentence: "舊版 ISO 允許範疇三「自願盤查」，導致佔比高達 70%~90% 的供應鏈排碳淪為隱形黑洞，滋生漂綠危機。",
+        chips: `
+          <div class="chip-row">
+            <span class="chip chip-lg c-ban">舊版 2006 致命漏洞：範疇三 (Scope 3) 僅列為「可選擇的自願項目」</span>
+          </div>
+          <div class="chip-row">
+            <span class="chip c-purple">🏢 企業實務：95% 企業僅盤查 Scope 1+2 拿認證，掩耳盜鈴</span>
+          </div>
+          <div class="chip-row">
+            <span class="chip c-red">💥 殘酷真相：非製造業/終端品牌供應鏈碳排，是自身運營的 4~11 倍！</span>
+          </div>
+          <div class="chip-row">
+            <span class="chip chip-sm c-yellow">🚨 國際壓力：投資人與 SBTi 逼迫 ISO 進行根本性的制度大手術</span>
+          </div>
+        `,
+        camera: { x: 0, y: -90, scale: 1.6 },
+        activeNodes: ["node-ghg", "node-s3-hub"],
+        activeLinks: ["link-hub-s3"],
+        boundaries: []
+      },
+      {
+        id: 4,
+        badge: "第 5 站 / 9 站 · 結構革命",
+        badgeClass: "c-green",
+        title: "第四幕：2018 制度大革新（廢除範疇，改為六大類別）",
+        sentence: "ISO 徹底移除「自願」字眼，重構為直接、能源、運輸、買、賣、其他六大類別，強迫重大間接排放全面攤在陽光下。",
+        chips: `
+          <div class="chip-row">
+            <span class="chip c-red">🔴 類別 1【直接】＝ 範疇一（煙囪/鍋爐/公務車/逸散）</span>
+          </div>
+          <div class="chip-row">
+            <span class="chip c-yellow">🟡 類別 2【能源】＝ 範疇二（台電電費單/外購蒸汽）</span>
+          </div>
+          <div class="chip-row">
+            <span class="chip c-cyan">🔷 類別 3【運】➔ 上下游物流 ＋ 員工通勤 ＋ 商務差旅</span>
+          </div>
+          <div class="chip-row">
+            <span class="chip c-blue">🟣 類別 4【買】➔ 採購的原物料、設備耗材、資本貨物、廢棄物清運</span>
+          </div>
+          <div class="chip-row">
+            <span class="chip c-pink">🌺 類別 5【賣】➔ 售出產品加工、使用階段耗能、終端報廢處理</span>
+          </div>
+          <div class="chip-row">
+            <span class="chip c-gray">⚪ 類別 6【特】➔ 投資、融資租賃、委外加工等其他重大來源</span>
+          </div>
+          <div class="chip-row" style="margin-top:0.3rem;">
+            <span class="chip chip-sm c-green">🔥 記憶神口訣：「1直接、2能源、3運輸、4買來用、5賣人用、6其他」</span>
+          </div>
+        `,
+        camera: { x: -80, y: -80, scale: 1.45 },
+        activeNodes: ["node-iso", "node-s3-hub", "node-c3", "node-c4", "node-c5", "node-c6"],
+        activeLinks: ["link-ghg-iso", "link-iso-c4", "link-s3-c3", "link-s3-c4", "link-s3-c5", "link-s3-c6"],
+        boundaries: []
+      },
+      {
+        id: 5,
+        badge: "第 6 站 / 9 站 · 準則破局",
+        badgeClass: "c-orange",
+        title: "實務破局：重大間接排放判定準則",
+        sentence: "不能全盤也不可不盤，建立透明的重大性準則矩陣，是向稽核員證明「為何算它或排除它」的唯一防護盾。",
+        chips: `
+          <div class="chip-row">
+            <span class="chip chip-lg c-orange">📊 四維度科學評分評估矩陣：</span>
+          </div>
+          <div class="chip-row">
+            <span class="chip chip-sm c-cyan">A. 規模頻率：排放量預估佔比與商業活動發生頻率</span>
+            <span class="chip chip-sm c-green">B. 減碳潛力：企業對該環節是否有技術與合約影響力</span>
+          </div>
+          <div class="chip-row">
+            <span class="chip chip-sm c-yellow">C. 數據可得：供應商能否提供原廠發票或實測單據</span>
+            <span class="chip chip-sm c-purple">D. 利害相關：品牌客戶 (Apple/Nike)、法規或投資人特定要求</span>
+          </div>
+          <div class="chip-row" style="margin-top:0.4rem;">
+            <span class="chip chip-sm c-ban">🚫 嚴厲紅線：任何排除項目必須在《盤查報告書》白紙黑字提出科學正當性</span>
+          </div>
+        `,
+        camera: { x: -140, y: -160, scale: 1.55 },
+        activeNodes: ["node-iso", "node-c4", "node-c5"],
+        activeLinks: ["link-iso-c4", "link-crit-c4"],
+        boundaries: []
+      },
+      {
+        id: 6,
+        badge: "第 7 站 / 9 站 · 台灣雙軌",
+        badgeClass: "c-blue",
+        title: "台灣戰場：環境部管煙囪 vs 金管會管荷包",
+        sentence: "大專校院與排碳大戶依法緊盯營運現場，上市櫃公司則在合併財報與投資人壓力下被逼向全供應鏈揭露。",
+        chips: `
+          <div class="chip-row">
+            <span class="chip c-green">🟢 環境部（氣候變遷署）—— 管廠區煙囪</span>
+          </div>
+          <div class="chip-row" style="margin-left:1.2rem;">
+            <span class="chip chip-sm c-green">▪ 邊界法：營運控制權法（管編廠區）</span>
+            <span class="chip chip-sm c-yellow">▪ 門檻：大戶 2.5 萬噸 / 大專校院</span>
+          </div>
+          <div class="chip-row" style="margin-left:1.2rem;">
+            <span class="chip chip-sm c-cyan">▪ 範圍：僅強制 範疇一 ＋ 範疇二</span>
+            <span class="chip chip-sm c-gray">▪ GWP：指定使用 IPCC AR5 數值</span>
+          </div>
+          <div class="chip-row" style="margin-top:0.5rem;">
+            <span class="chip c-blue">🔵 金管會（證期局）—— 管合併荷包</span>
+          </div>
+          <div class="chip-row" style="margin-left:1.2rem;">
+            <span class="chip chip-sm c-blue">▪ 邊界法：財務控制權法（母子公司合併財報）</span>
+            <span class="chip chip-sm c-pink">▪ 範圍：範疇一、二 ＋ 逐步納入範疇三</span>
+          </div>
+          <div class="chip-row" style="margin-left:1.2rem;">
+            <span class="chip chip-sm c-yellow">▪ 要求：永續報告書揭露 ＋ 第三方嚴格確信保證</span>
+          </div>
+        `,
+        camera: { x: 0, y: -20, scale: 1.15 },
+        activeNodes: ["node-ghg", "node-iso", "node-s1-fix", "node-s1-mob", "node-s1-fug", "node-s2-grid", "node-s3-hub"],
+        activeLinks: ["link-ghg-iso", "link-s1-fix", "link-s1-mob", "link-s1-fug", "link-s2-grid", "link-hub-s3"],
+        boundaries: ["env-boundary", "fsc-boundary"]
+      },
+      {
+        id: 7,
+        badge: "第 8 站 / 9 站 · 隨堂實戰",
+        badgeClass: "c-yellow",
+        title: "實務速辨：四題高頻隨堂考驗",
+        sentence: "盤查的精髓不是死背公式，而是在邊界劃分那一秒，精準判斷該連線還是斷線歸零（點擊卡片看解答）。",
+        chips: `
+          <div class="quiz-grid">
+            <div class="quiz-pill" onclick="toggleQuiz(this)">
+              <span class="chip chip-sm c-yellow">❓ 實戰 1</span>
+              <strong>總務處採購汽油給校園割草機、油鋸除草，要算在哪個抽屜？</strong>
+              <div class="quiz-ans">👉 屬於【範疇一 / 類別 1】固定/設備燃燒！由學校出資購入油品且自控使用，計入直接排放。</div>
+            </div>
+            <div class="quiz-pill" onclick="toggleQuiz(this)">
+              <span class="chip chip-sm c-yellow">❓ 實戰 2</span>
+              <strong>全校走廊掛的 ABC 乾粉滅火器，年度點檢要不要算逸散排放？</strong>
+              <div class="quiz-ans">👉 斷線歸零 (0 排放)！ABC 乾粉主要成分為磷酸二氫銨，藥劑反應不產生溫室氣體；僅 CO₂ 與特定鹵代烷滅火器需計。</div>
+            </div>
+            <div class="quiz-pill" onclick="toggleQuiz(this)">
+              <span class="chip chip-sm c-yellow">❓ 實戰 3</span>
+              <strong>老舊冷氣補充 R-22 冷媒，冷氣吹得很涼，碳排怎麼算？</strong>
+              <div class="quiz-ans">👉 豁免免計！R-22 屬於 HCFC 破壞臭氧層物質，由《蒙特婁議定書》管制，不屬於京都與巴黎協定之溫室氣體籃子。</div>
+            </div>
+            <div class="quiz-pill" onclick="toggleQuiz(this)">
+              <span class="chip chip-sm c-yellow">❓ 實戰 4</span>
+              <strong>校舍化糞池的水肥排放，什麼時候可以完全不計？</strong>
+              <div class="quiz-ans">👉 水費單有列「污水下水道使用費」者！表示廢水已直接接入公用污水管網由市政污水處理廠處理，校內排放斷線歸 0。</div>
+            </div>
+          </div>
+        `,
+        camera: { x: 260, y: -10, scale: 1.6 },
+        activeNodes: ["node-s1-fix", "node-s1-mob", "node-s1-fug", "node-s1-excl"],
+        activeLinks: ["link-s1-fix", "link-s1-mob", "link-s1-fug", "link-s1-excl"],
+        boundaries: []
+      },
+      {
+        id: 8,
+        badge: "第 9 站 / 9 站 · 終點總結",
+        badgeClass: "c-pink",
+        title: "數據治理基石與五大原則",
+        sentence: "盤查的目的是誠實建立基準線，遵循「邊源算減品報查」七步心法，牢記「減量歸減量，盤查歸盤查」。",
+        chips: `
+          <div class="chip-row">
+            <span class="chip chip-lg c-green">🏆 數據品質五大天條（缺失一項查驗直接判定不合格）：</span>
+          </div>
+          <div class="chip-row" style="margin-left: 0.5rem;">
+            <span class="chip chip-sm c-cyan">① 相關性 (Relevance)</span>
+            <span class="chip chip-sm c-blue">② 完整性 (Completeness)</span>
+            <span class="chip chip-sm c-yellow">③ 一致性 (Consistency)</span>
+            <span class="chip chip-sm c-green">④ 準確性 (Accuracy)</span>
+            <span class="chip chip-sm c-pink">⑤ 透明度 (Transparency)</span>
+          </div>
+          <div class="chip-row" style="margin-top:0.4rem;">
+            <span class="chip chip-lg c-purple">🧭 七步實務推進流程口訣：「邊、源、算、減、品、報、查」</span>
+          </div>
+          <div class="chip-row" style="margin-left: 0.5rem;">
+            <span class="chip chip-sm c-gray">定邊界 ➔ 找排源 ➔ 算數據 ➔ 擬減量 ➔ 控品質 ➔ 寫報告 ➔ 迎查驗</span>
+          </div>
+          <div class="chip-row" style="margin-top:0.4rem;">
+            <span class="chip chip-sm c-red">⚡ 稽核金句提醒：自願購買的綠電憑證與植樹減量「不可在盤查表直接扣除」，必須忠實揭露毛排放！</span>
+          </div>
+        `,
+        camera: { x: 0, y: 0, scale: 1 },
+        activeNodes: ["node-origin", "node-treaty", "node-ghg", "node-iso", "node-s1-fix", "node-s2-grid", "node-s3-hub", "node-c3", "node-c4", "node-c5", "node-c6"],
+        activeLinks: ["link-origin-treaty", "link-treaty-ghg", "link-ghg-iso", "link-hub-s3", "link-s1-fix", "link-s2-grid", "link-s3-c3", "link-s3-c4", "link-s3-c5", "link-s3-c6"],
+        boundaries: ["env-boundary"]
+      }
+    ];
+
+    let currentStation = 0;
+    const totalStations = STATIONS.length;
+
+    const contentSlot = document.getElementById('content-slot');
+    const progressBar = document.getElementById('progress-bar');
+    const prevBtn = document.getElementById('prev-btn');
+    const nextBtn = document.getElementById('next-btn');
+    const camera = document.getElementById('camera');
+    const dotsContainer = document.getElementById('dots-container');
+
+    // 建立導覽圓點
+    STATIONS.forEach((st, idx) => {
+      const dot = document.createElement('div');
+      dot.className = 'dot' + (idx === 0 ? ' active' : '');
+      dot.onclick = () => goToStation(idx);
+      dotsContainer.appendChild(dot);
+    });
+
+    const dots = document.querySelectorAll('.dot');
+
+    function renderStation(idx) {
+      const s = STATIONS[idx];
+
+      // 更新左側文字
+      contentSlot.innerHTML = `
+        <div class="station-badge ${s.badgeClass}">${s.badge}</div>
+        <h1 class="slide-title">${s.title}</h1>
+        <p class="one-sentence">${s.sentence}</p>
+        <div class="chip-container">${s.chips}</div>
+      `;
+
+      // 更新進度條與按鈕
+      progressBar.style.width = `${((idx + 1) / totalStations) * 100}%`;
+      prevBtn.disabled = idx === 0;
+      nextBtn.disabled = idx === totalStations - 1;
+
+      // 更新圓點
+      dots.forEach((d, i) => d.classList.toggle('active', i === idx));
+
+      // 更新圖譜相機 (平移與縮放)
+      camera.style.transform = `translate(${s.camera.x}px, ${s.camera.y}px) scale(${s.camera.scale})`;
+
+      // 更新節點高亮與變暗
+      document.querySelectorAll('.graph-node').forEach(node => {
+        const id = node.id;
+        const isTarget = s.activeNodes.includes(id);
+        node.classList.toggle('highlight', isTarget);
+        node.classList.toggle('dimmed', !isTarget);
+      });
+
+      // 更新連線高亮
+      document.querySelectorAll('.graph-link').forEach(link => {
+        const id = link.id;
+        const isTarget = s.activeLinks.includes(id);
+        link.classList.toggle('active', isTarget);
+        link.style.opacity = isTarget ? "1" : "0.15";
+      });
+
+      // 更新防護罩邊界
+      document.querySelectorAll('.boundary-box').forEach(box => {
+        const id = box.id;
+        box.classList.toggle('active', s.boundaries.includes(id));
+      });
+    }
+
+    function nextSlide() {
+      if (currentStation < totalStations - 1) {
+        currentStation++;
+        renderStation(currentStation);
+      }
+    }
+
+    function prevSlide() {
+      if (currentStation > 0) {
+        currentStation--;
+        renderStation(currentStation);
+      }
+    }
+
+    function goToStation(idx) {
+      currentStation = idx;
+      renderStation(currentStation);
+    }
+
+    function toggleQuiz(el) {
+      const ans = el.querySelector('.quiz-ans');
+      if (ans) {
+        ans.style.display = ans.style.display === 'block' ? 'none' : 'block';
+      }
+    }
+
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        }
+      }
+    }
+
+    // 鍵盤支援
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
+        e.preventDefault();
+        nextSlide();
+      } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+        e.preventDefault();
+        prevSlide();
+      } else if (e.key === 'f' || e.key === 'F') {
+        toggleFullscreen();
+      }
+    });
+
+    // 點擊節點互動：點擊圖譜中的節點可跳至對應主題
+    const nodeJumpMap = {
+      'node-origin': 1,
+      'node-treaty': 2,
+      'node-ghg': 0,
+      'node-iso': 4,
+      'node-s3-hub': 3,
+      'node-s1-fix': 7,
+      'node-s1-mob': 7,
+      'node-s1-fug': 7,
+      'node-s2-grid': 4,
+      'node-c3': 4,
+      'node-c4': 5,
+      'node-c5': 5,
+      'node-c6': 4
+    };
+
+    Object.keys(nodeJumpMap).forEach(nodeId => {
+      const el = document.getElementById(nodeId);
+      if (el) {
+        el.onclick = () => goToStation(nodeJumpMap[nodeId]);
+      }
+    });
+
+    // 初始化
+    renderStation(0);
+  </script>
+</body>
+</html>
